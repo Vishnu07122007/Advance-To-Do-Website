@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login - Advanced To-Do App</title>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <!-- Login Styles (inline for now) -->
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --bg-light: #f9fafb;
+      --bg-dark: #1e1e2f;
+      --text-light: #333;
+      --text-dark: #f5f5f5;
+      --card-light: #fff;
+      --card-dark: #2a2a40;
+    }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      transition: background 0.4s, color 0.4s;
+    }
+    body.light {
+      background: var(--bg-light);
+      color: var(--text-light);
+    }
+    body.dark {
+      background: var(--bg-dark);
+      color: var(--text-dark);
+    }
+    .container {
+      max-width: 420px;
+      margin: 60px auto;
+      background: var(--card-light);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      transition: background 0.3s, color 0.3s;
+    }
+    body.dark .container {
+      background: var(--card-dark);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+    .theme-toggle, .back-btn {
+      position: absolute;
+      top: 20px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      color: white;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .theme-toggle {
+      right: 20px;
+      background-color: var(--primary);
+    }
+    .back-btn {
+      left: 20px;
+      background-color: var(--primary);
+      text-decoration: none;
+    }
+    .auth-btn, form button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-bottom: 15px;
+      width: 100%;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    .password-wrapper {
+      position: relative;
+    }
+    .toggle-password {
+      position: absolute;
+      top: 50%;
+      right: 12px;
+      transform: translateY(-50%);
+      cursor: pointer;
+    }
+    .link {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    .link a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    #login-message {
+      margin-top: 10px;
+      color: red;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body class="light">
+
+  <!-- Back and Theme Buttons -->
+  <a href="index.html" class="back-btn" title="Go back"><i class="fas fa-arrow-left"></i></a>
+  <button class="theme-toggle" id="theme-toggle"><i class="fas fa-moon"></i></button>
+
+  <!-- Main Container -->
+  <div class="container">
+    <h1>Login</h1>
+
+    <button id="login-google" class="auth-btn"><i class="fab fa-google"></i> Login with Google</button>
+
+    <form id="email-login-form">
+      <input type="email" id="email-input" placeholder="Email" required />
+      <div class="password-wrapper">
+        <input type="password" id="password-input" placeholder="Password" required />
+        <i class="fa fa-eye toggle-password" id="toggle-password"></i>
+      </div>
+      <button type="submit">Login with Email</button>
+    </form>
+
+    <div class="link">
+      <a href="#" id="forgot-password-link">Forgot Password?</a><br>
+      Don't have an account? <a href="signup.html">Sign Up</a>
+    </div>
+
+    <div id="login-message"></div>
+  </div>
+
+  <!-- Load External Script -->
+  <script>
+
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyB1o3z24WgWDz-nE2K3AKXvsB-9m6DtEDM",
+  authDomain: "advance-to-do-web.firebaseapp.com",
+  projectId: "advance-to-do-web",
+  storageBucket: "advance-to-do-web.appspot.com",
+  messagingSenderId: "433603440709",
+  appId: "1:433603440709:web:3fa6f15fe24b354b35332c"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+// Email Login
+document.getElementById('email-login-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const email = document.getElementById('email-input').value;
+  const password = document.getElementById('password-input').value;
+  const loginMessage = document.getElementById('login-message');
+
+  auth.signInWithEmailAndPassword(email, password)
+    .then(() => {
+      localStorage.setItem('loginSuccess', 'true');
+      window.location.href = 'index.html';
+    })
+    .catch(error => {
+      if (error.code === 'auth/user-not-found') {
+        loginMessage.textContent = 'User not found. Please sign up first.';
+      } else if (error.code === 'auth/wrong-password') {
+        loginMessage.textContent = 'Incorrect password. Please try again.';
+      } else {
+        loginMessage.textContent = error.message;
+      }
+    });
+});
+
+// Google Login
+document.getElementById('login-google').addEventListener('click', () => {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider)
+    .then(() => {
+      localStorage.setItem('loginSuccess', 'true');
+      window.location.href = 'index.html';
+    })
+    .catch(error => {
+      document.getElementById('login-message').textContent = error.message;
+    });
+});
+
+// Forgot Password
+document.getElementById('forgot-password-link').addEventListener('click', () => {
+  const email = prompt("Enter your email for password reset:");
+  if (email) {
+    auth.sendPasswordResetEmail(email)
+      .then(() => alert("Reset link sent to your email."))
+      .catch(error => alert(error.message));
+  }
+});
+
+// Toggle password visibility
+document.getElementById('toggle-password').addEventListener('click', () => {
+  const passInput = document.getElementById('password-input');
+  const toggleIcon = document.getElementById('toggle-password');
+  if (passInput.type === 'password') {
+    passInput.type = 'text';
+    toggleIcon.classList.replace('fa-eye', 'fa-eye-slash');
+  } else {
+    passInput.type = 'password';
+    toggleIcon.classList.replace('fa-eye-slash', 'fa-eye');
+  }
+});
+
+// Theme toggle
+const themeToggle = document.getElementById('theme-toggle');
+const body = document.body;
+const savedTheme = localStorage.getItem('theme') || 'light';
+body.classList.add(savedTheme);
+themeToggle.innerHTML = savedTheme === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+
+themeToggle.addEventListener('click', () => {
+  const current = body.classList.contains('dark') ? 'dark' : 'light';
+  const newTheme = current === 'dark' ? 'light' : 'dark';
+  body.classList.remove(current);
+  body.classList.add(newTheme);
+  localStorage.setItem('theme', newTheme);
+  themeToggle.innerHTML = newTheme === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+});
+
+
+  </script>
+</body>
+</html>
