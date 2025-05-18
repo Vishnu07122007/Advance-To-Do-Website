@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>User Profile - To-Do App</title>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --bg-light: #f9fafb;
+      --bg-dark: #1e1e2f;
+      --text-light: #333;
+      --text-dark: #f5f5f5;
+      --card-light: #fff;
+      --card-dark: #2a2a40;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      transition: background 0.4s, color 0.4s;
+    }
+
+    body.light {
+      background: var(--bg-light);
+      color: var(--text-light);
+    }
+
+    body.dark {
+      background: var(--bg-dark);
+      color: var(--text-dark);
+    }
+
+    .container {
+      position: relative;
+      max-width: 420px;
+      margin: 60px auto;
+      padding: 30px;
+      border-radius: 12px;
+      background: var(--card-light);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body.dark .container {
+      background: var(--card-dark);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .profile-detail {
+      margin-bottom: 12px;
+      font-size: 16px;
+    }
+
+    .profile-detail strong {
+      display: inline-block;
+      width: 140px;
+    }
+
+    .edit-container-icon {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      font-size: 18px;
+      color: var(--primary);
+      cursor: pointer;
+    }
+
+    .profile-pic-wrapper {
+      width: fit-content;
+      margin: 0 auto 20px;
+    }
+
+    .profile-pic {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+      cursor: default;
+    }
+
+    .editable-text {
+      display: inline-block;
+      min-width: 120px;
+      cursor: text;
+    }
+
+    .editable-text.editing {
+      border-bottom: 1px dashed var(--primary);
+      padding: 2px 4px;
+      outline: none;
+    }
+
+    .logout-btn,
+    #save-profile,
+    #cancel-edit {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 15px;
+      width: 100%;
+    }
+
+    #cancel-edit {
+      background-color: #e53e3e;
+      margin-top: 10px;
+    }
+
+    #edit-actions {
+      display: none;
+    }
+
+    .back-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background-color: var(--primary);
+      border: none;
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 1000;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: background-color 0.3s ease;
+    }
+
+    .back-btn:hover {
+      background-color: #2563eb;
+    }
+  </style>
+</head>
+<body class="light">
+<button id="back-btn" class="back-btn"><i class="fas fa-arrow-left"></i></button>
+
+  <div class="container" id="profile-container">
+    <h1>User Profile</h1>
+
+    <!-- Pen icon top right of container -->
+    <div class="edit-container-icon" id="edit-toggle" title="Edit Profile">
+      <i class="fas fa-pen"></i>
+    </div>
+
+    <div class="profile-pic-wrapper">
+      <img src="" alt="Profile Picture" id="profile-pic" class="profile-pic" />
+    </div>
+
+    <div class="profile-detail">
+      <strong>Name:</strong>
+      <span id="user-name" class="editable-text">Loading...</span>
+    </div>
+
+    <div class="profile-detail">
+      <strong>Email:</strong>
+      <span id="user-email">Loading...</span>
+    </div>
+
+    <div class="profile-detail">
+      <strong>Account Created:</strong>
+      <span id="account-created">Loading...</span>
+    </div>
+
+    <div class="profile-detail">
+      <strong>Last Login:</strong>
+      <span id="last-login">Loading...</span>
+    </div>
+
+    <div class="profile-detail">
+      <strong>Login Method:</strong>
+      <span id="login-method">Loading...</span>
+    </div>
+
+    <div id="edit-actions">
+      <button id="save-profile">Save</button>
+      <button id="cancel-edit">Cancel</button>
+    </div>
+
+    <button class="logout-btn" id="logout-btn">Logout</button>
+  </div>
+
+  <script>
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyB1o3z24WgWDz-nE2K3AKXvsB-9m6DtEDM",
+      authDomain: "advance-to-do-web.firebaseapp.com",
+      projectId: "advance-to-do-web",
+      storageBucket: "advance-to-do-web.appspot.com",
+      messagingSenderId: "433603440709",
+      appId: "1:433603440709:web:3fa6f15fe24b354b35332c"
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const auth = firebase.auth();
+
+    // DOM Elements
+    const userNameEl = document.getElementById('user-name');
+    const userEmailEl = document.getElementById('user-email');
+    const profilePicEl = document.getElementById('profile-pic');
+    const accountCreatedEl = document.getElementById('account-created');
+    const lastLoginEl = document.getElementById('last-login');
+    const loginMethodEl = document.getElementById('login-method');
+    const editToggleBtn = document.getElementById('edit-toggle');
+    const editActions = document.getElementById('edit-actions');
+    const saveBtn = document.getElementById('save-profile');
+    const cancelBtn = document.getElementById('cancel-edit');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    let currentUser = null;
+    let editing = false;
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        currentUser = user;
+
+        userNameEl.textContent = user.displayName || "N/A";
+        userEmailEl.textContent = user.email || "N/A";
+        accountCreatedEl.textContent = user.metadata.creationTime ? new Date(user.metadata.creationTime).toLocaleString() : "N/A";
+        lastLoginEl.textContent = user.metadata.lastSignInTime ? new Date(user.metadata.lastSignInTime).toLocaleString() : "N/A";
+
+        // Determine login method
+        let provider = "Unknown";
+        if (user.providerData.length > 0) {
+          provider = user.providerData[0].providerId;
+          if (provider === 'password') provider = 'Email & Password';
+          else if (provider === 'google.com') provider = 'Google';
+          else if (provider === 'facebook.com') provider = 'Facebook';
+        }
+        loginMethodEl.textContent = provider;
+
+        if (user.photoURL) {
+          profilePicEl.src = user.photoURL;
+        } else {
+          profilePicEl.src = "https://via.placeholder.com/80?text=User";
+        }
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    // Editing logic
+    editToggleBtn.addEventListener('click', () => {
+      if (editing) return; // Prevent toggling while editing
+
+      editing = true;
+
+      // Make name editable
+      userNameEl.contentEditable = true;
+      userNameEl.classList.add('editing');
+      userNameEl.focus();
+
+      // Show save/cancel buttons
+      editActions.style.display = 'block';
+    });
+
+    // Save changes
+    saveBtn.addEventListener('click', async () => {
+      if (!currentUser) return;
+
+      const newName = userNameEl.textContent.trim();
+      if (newName === "") {
+        alert("Name cannot be empty!");
+        userNameEl.focus();
+        return;
+      }
+
+      try {
+        await currentUser.updateProfile({
+          displayName: newName
+        });
+
+        alert("Profile updated successfully!");
+
+        editing = false;
+        userNameEl.contentEditable = false;
+        userNameEl.classList.remove('editing');
+        editActions.style.display = 'none';
+      } catch (error) {
+        alert("Error updating profile: " + error.message);
+      }
+    });
+
+    // Cancel editing
+    cancelBtn.addEventListener('click', () => {
+      if (!currentUser) return;
+
+      editing = false;
+      userNameEl.textContent = currentUser.displayName || "N/A";
+      userNameEl.contentEditable = false;
+      userNameEl.classList.remove('editing');
+      editActions.style.display = 'none';
+    });
+
+    // Logout
+    logoutBtn.addEventListener('click', async () => {
+      try {
+        await auth.signOut();
+        window.location.href = 'login.html';
+      } catch (error) {
+        alert("Error logging out: " + error.message);
+      }
+    });
+
+    // Back button navigation
+    document.getElementById('back-btn').addEventListener('click', () => {
+      window.location.href = 'index.html';
+    });
+  </script>
+</body>
+</html>
